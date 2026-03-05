@@ -5,6 +5,13 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.7] - 2026-03-06
+
+### 修复 (Bug Fixes)
+
+- **fnm 用户 Node.js 检测失败** — 移除错误的 `~/.fnm/current/bin`，改为扫描 `$FNM_DIR/node-versions/*/installation/bin`（macOS/Linux）和 `%FNM_DIR%\node-versions\*\installation`（Windows），兼容 fnm 默认 XDG 路径
+- **Release Notes 生成失败** — 中文 commit message 不以 `feat:/fix:` 开头时 `grep` 返回 exit 1，GitHub Actions `pipefail` 导致脚本终止，已用 `|| true` 修复
+
 ## [0.4.6] - 2026-03-06
 
 ### 修复 (Bug Fixes)
