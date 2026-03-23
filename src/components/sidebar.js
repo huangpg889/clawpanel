@@ -35,7 +35,7 @@ const NAV_ITEMS_FULL = [
       { route: '/agents', label: 'Agent 管理', icon: 'agents' },
       { route: '/gateway', label: 'Gateway', icon: 'gateway' },
       { route: '/channels', label: '消息渠道', icon: 'channels' },
-      { route: '/communication', label: '通信与自动化', icon: 'settings' },
+      // { route: '/communication', label: '通信与自动化', icon: 'settings' },
       // { route: '/security', label: '安全设置', icon: 'security' },
     ]
   },
