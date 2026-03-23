@@ -2854,33 +2854,47 @@ pub async fn list_remote_models(
         return Err(format!("获取模型列表失败: {msg}"));
     }
 
-    // 解析 OpenAI / Anthropic / Gemini 格式的 /models 响应
+    // 解析 /models 响应，兼容多种格式：
+    // - OpenAI: { "data": [{"id": "..."}, ...] }
+    // - Gemini:  { "models": [{"name": "models/..."}, ...] }
+    // - 顶层数组: [{"id": "..."}, ...]
+    // - 其他字段: { "result": [...] } / { "list": [...] }
+    fn extract_id(item: &serde_json::Value) -> Option<String> {
+        item.get("id")
+            .or_else(|| item.get("model_id"))
+            .or_else(|| item.get("modelId"))
+            .and_then(|v| v.as_str())
+            .map(String::from)
+    }
     let ids = serde_json::from_str::<serde_json::Value>(&text)
         .ok()
-        .map(|v| {
-            let mut ids: Vec<String> = if let Some(data) = v.get("data").and_then(|d| d.as_array())
-            {
-                data.iter()
-                    .filter_map(|m| m.get("id").and_then(|id| id.as_str()).map(String::from))
-                    .collect()
+        .and_then(|v| {
+            let arr: Option<Vec<String>> = if let Some(data) = v.get("data").and_then(|d| d.as_array()) {
+                Some(data.iter().filter_map(extract_id).collect())
             } else if let Some(data) = v.get("models").and_then(|d| d.as_array()) {
-                data.iter()
-                    .filter_map(|m| {
-                        m.get("name")
-                            .and_then(|id| id.as_str())
+                Some(data.iter().filter_map(|m| {
+                    extract_id(m).or_else(|| {
+                        m.get("name").and_then(|n| n.as_str())
                             .map(|s| s.trim_start_matches("models/").to_string())
                     })
-                    .collect()
+                }).collect())
+            } else if v.is_array() {
+                Some(v.as_array().unwrap().iter().filter_map(extract_id).collect())
+            } else if let Some(data) = v.get("result").and_then(|d| d.as_array())
+                .or_else(|| v.get("list").and_then(|d| d.as_array())) {
+                Some(data.iter().filter_map(extract_id).collect())
             } else {
-                vec![]
+                None
             };
-            ids.sort();
-            ids
+            arr.map(|mut ids| { ids.sort(); ids })
         })
         .unwrap_or_default();
 
     if ids.is_empty() {
-        return Err("该服务商返回了空的模型列表，可能不支持 /models 接口".to_string());
+        return Err(format!(
+            "未能从响应中解析出模型列表（URL: {}/models）。该服务商可能不支持 /models 接口，请手动添加模型",
+            base_url
+        ));
     }
 
     Ok(ids)

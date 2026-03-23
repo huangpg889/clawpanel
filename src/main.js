@@ -4,7 +4,7 @@
 import { registerRoute, initRouter, navigate, setDefaultRoute } from './router.js'
 import { renderSidebar, openMobileSidebar } from './components/sidebar.js'
 import { initTheme } from './lib/theme.js'
-import { detectOpenclawStatus, isOpenclawReady, isUpgrading, isGatewayRunning, onGatewayChange, startGatewayPoll, onGuardianGiveUp, resetAutoRestart, loadActiveInstance, getActiveInstance, onInstanceChange } from './lib/app-state.js'
+import { detectOpenclawStatus, isOpenclawReady, isGatewayRunning, onGatewayChange, startGatewayPoll, onGuardianGiveUp, resetAutoRestart, loadActiveInstance, getActiveInstance, onInstanceChange } from './lib/app-state.js'
 import { wsClient } from './lib/ws-client.js'
 import { api, checkBackendHealth, isBackendOnline, onBackendStatusChange } from './lib/tauri-api.js'
 import { version as APP_VERSION } from '../package.json'
@@ -302,11 +302,9 @@ async function boot() {
   registerRoute('/about', () => import('./pages/about.js'))
   registerRoute('/assistant', () => import('./pages/assistant.js'))
   registerRoute('/setup', () => import('./pages/setup.js'))
+  registerRoute('/docker', () => import('./pages/docker.js'))
   registerRoute('/channels', () => import('./pages/channels.js'))
   registerRoute('/cron', () => import('./pages/cron.js'))
-  registerRoute('/usage', () => import('./pages/usage.js'))
-  registerRoute('/communication', () => import('./pages/communication.js'))
-  registerRoute('/settings', () => import('./pages/settings.js'))
 
   renderSidebar(sidebar)
   initRouter(content)
@@ -407,30 +405,6 @@ async function boot() {
         await detectOpenclawStatus()
         if (isGatewayRunning()) autoConnectWebSocket()
       })
-    }
-
-    // 全局监听后台任务完成/失败事件，自动刷新安装状态和侧边栏
-    if (window.__TAURI_INTERNALS__) {
-      import('@tauri-apps/api/event').then(async ({ listen }) => {
-        const refreshAfterTask = async () => {
-          // 清除 API 缓存，确保拿到最新状态
-          const { invalidate } = await import('./lib/tauri-api.js')
-          invalidate('check_installation', 'get_services_status', 'get_version_info')
-          await detectOpenclawStatus()
-          renderSidebar(sidebar)
-          // 如果安装完成后变为就绪，跳转到仪表盘
-          if (isOpenclawReady() && window.location.hash === '#/setup') {
-            navigate('/dashboard')
-          }
-          // 如果卸载后变为未就绪，跳转到 setup
-          if (!isOpenclawReady() && !isUpgrading()) {
-            setDefaultRoute('/setup')
-            navigate('/setup')
-          }
-        }
-        await listen('upgrade-done', refreshAfterTask)
-        await listen('upgrade-error', refreshAfterTask)
-      }).catch(() => {})
     }
   })
 }
@@ -729,29 +703,20 @@ function startUpdateChecker() {
     }
   }
 
-  const auth = await checkAuth()
-  if (!auth.ok) await showLoginOverlay(auth.defaultPw)
-  try {
-    await boot()
-  } catch (bootErr) {
-    console.error('[main] boot() 失败:', bootErr)
-    _hideSplash()
-    const app = document.getElementById('app')
-    if (app) app.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
-        <div style="font-size:48px;margin-bottom:16px">⚠️</div>
-        <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:#18181b">页面加载失败</div>
-        <div style="font-size:13px;color:#71717a;max-width:400px;line-height:1.6;margin-bottom:16px">${String(bootErr?.message || bootErr).replace(/</g,'&lt;')}</div>
-        <button onclick="location.reload()" style="padding:8px 20px;border-radius:8px;border:none;background:#6366f1;color:#fff;font-size:13px;cursor:pointer">刷新重试</button>
-        <div style="margin-top:24px;font-size:11px;color:#a1a1aa">如果问题持续出现，请尝试重新安装 ClawPanel<br>或在 <a href="https://github.com/qingchencloud/clawpanel/issues" target="_blank" style="color:#6366f1">GitHub Issues</a> 反馈</div>
-      </div>`
-  }
+  boot()
   startUpdateChecker()
 
-  // 初始化全局 AI 助手浮动按钮（延迟加载，不阻塞启动）
+  // 初始化全局 AI 助手浮动按钮（延迟加载，不阻塞启动；setup 页隐藏）
   setTimeout(async () => {
     const { initAIFab, registerPageContext, openAIDrawerWithError } = await import('./components/ai-drawer.js')
     initAIFab()
+    const updateFabVisibility = () => {
+      const page = window.location.hash.replace(/^#/, '') || '/'
+      const fabEl = document.querySelector('.ai-fab')
+      if (fabEl) fabEl.style.display = 'none'
+    }
+    updateFabVisibility()
+    window.addEventListener('hashchange', updateFabVisibility)
 
     // 注册各页面上下文提供器
     registerPageContext('/chat-debug', async () => {
@@ -768,7 +733,7 @@ function startUpdateChecker() {
       } catch {}
       try {
         const ver = await api.getVersionInfo()
-        lines.push(`- 版本: 当前 ${ver?.current || '?'} / 推荐 ${ver?.recommended || '?'} / 最新 ${ver?.latest || '?'}${ver?.ahead_of_recommended ? ' / 当前版本高于推荐版' : ''}`)
+        lines.push(`- 版本: ${ver?.current || '?'} → ${ver?.latest || '?'}`)
       } catch {}
       return { detail: lines.join('\n') }
     })

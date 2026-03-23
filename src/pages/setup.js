@@ -18,7 +18,7 @@ export async function render() {
       <div style="margin-bottom:var(--space-lg)">
         <img src="/images/logo-brand.png" alt="ClawPanel" style="max-width:160px;width:100%;height:auto">
       </div>
-      <h1 style="font-size:var(--font-size-xl);margin-bottom:var(--space-xs)">欢迎使用 ClawPanel</h1>
+      <h1 style="font-size:var(--font-size-xl);margin-bottom:var(--space-xs)">欢迎使用 Alsatian</h1>
       <p style="color:var(--text-secondary);margin-bottom:var(--space-xl);line-height:1.6">
         OpenClaw AI Agent 框架的桌面管理面板
       </p>
@@ -48,14 +48,13 @@ async function runDetect(page) {
     <div class="stat-card loading-placeholder" style="height:48px;margin-top:8px"></div>
   `
   // 清除缓存，确保拿到最新检测结果
-  invalidate('get_version_info', 'check_node', 'check_git', 'get_services_status', 'check_installation')
+  invalidate('check_node', 'check_git', 'get_services_status', 'check_installation')
   // 并行检测 Node.js、Git、OpenClaw CLI、配置文件
-  const [nodeRes, gitRes, clawRes, configRes, versionRes] = await Promise.allSettled([
+  const [nodeRes, gitRes, clawRes, configRes] = await Promise.allSettled([
     api.checkNode(),
     api.checkGit(),
     api.getServicesStatus(),
     api.checkInstallation(),
-    api.getVersionInfo(),
   ])
 
   const node = nodeRes.status === 'fulfilled' ? nodeRes.value : { installed: false }
@@ -64,7 +63,6 @@ async function runDetect(page) {
     && clawRes.value?.length > 0
     && clawRes.value[0]?.cli_installed !== false
   let config = configRes.status === 'fulfilled' ? configRes.value : { installed: false }
-  const version = versionRes.status === 'fulfilled' ? versionRes.value : null
 
   // CLI 已装但配置缺失 → 自动创建默认配置
   if (cliOk && !config.installed) {
@@ -83,7 +81,7 @@ async function runDetect(page) {
     api.configureGitHttps().catch(() => {})
   }
 
-  renderSteps(page, { node, git, cliOk, config, version })
+  renderSteps(page, { node, git, cliOk, config })
 }
 
 function stepIcon(ok) {
@@ -91,7 +89,7 @@ function stepIcon(ok) {
   return `<span style="color:${color};font-weight:700;width:18px;display:inline-block">${ok ? '✓' : '✗'}</span>`
 }
 
-function renderSteps(page, { node, git, cliOk, config, version }) {
+function renderSteps(page, { node, git, cliOk, config }) {
   const stepsEl = page.querySelector('#setup-steps')
   const nodeOk = node.installed
   const gitOk = git?.installed || false
@@ -165,20 +163,16 @@ function renderSteps(page, { node, git, cliOk, config, version }) {
         ${stepIcon(cliOk)} OpenClaw CLI
       </div>
       ${cliOk
-        ? `<p style="color:var(--success);font-size:var(--font-size-sm)">CLI 可用</p>
-           ${version?.ahead_of_recommended && version?.recommended
-             ? `<div style="margin-top:8px;padding:8px 12px;background:var(--bg-tertiary);border-radius:var(--radius-sm);font-size:var(--font-size-xs);color:var(--warning,#f59e0b);line-height:1.6">
-                  检测到当前本地 OpenClaw ${version.current || ''} 高于当前面板推荐稳定版 ${version.recommended}，可能存在兼容或稳定性风险。建议稍后到「关于」页回退到推荐版。
-                </div>`
-             : ''}`
+        ? `<p style="color:var(--success);font-size:var(--font-size-sm)">CLI 可用</p>`
         : renderInstallSection()
       }
     </div>
   `
   // 第四步：配置文件
   html += `
-    <div class="config-section" style="text-align:left;${cliOk ? '' : 'opacity:0.4;pointer-events:none'}">
-      <div class="config-section-title" style="display:flex;align-items:center;gap:4px">
+    <div class="config-section" style="display:none;text-align:left;${cliOk ? '' : 'opacity:0.4;pointer-events:none'}">
+      <div class="config-section-title" style="
+      display:flex;align-items:center;gap:4px">
         ${stepIcon(config.installed)} 配置文件
       </div>
       ${config.installed
@@ -191,9 +185,9 @@ function renderSteps(page, { node, git, cliOk, config, version }) {
     </div>
   `
 
-  // AI 助手入口
+  // AI 助手入口（已隐藏）
   html += `
-    <div class="config-section" style="text-align:left;margin-top:var(--space-md)">
+    <div class="config-section" style="display:none;text-align:left;margin-top:var(--space-md)">
       <div class="config-section-title" style="display:flex;align-items:center;gap:6px">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
         晴辰助手
@@ -227,14 +221,11 @@ function renderSteps(page, { node, git, cliOk, config, version }) {
             <li>如需飞书、钉钉、QQ 等消息渠道，请到「消息渠道」完成接入与配对</li>
           </ol>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <button class="btn btn-secondary btn-sm" id="btn-goto-models">配置模型</button>
-          <button class="btn btn-secondary btn-sm" id="btn-goto-gateway">Gateway 设置</button>
-          <button class="btn btn-secondary btn-sm" id="btn-goto-channels">消息渠道</button>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;justify-content:center">
+          <button class="btn btn-secondary" id="btn-goto-models">配置模型</button>
+          <button class="btn btn-secondary" id="btn-goto-gateway">Gateway 设置</button>
+          <button class="btn btn-secondary" id="btn-goto-channels">消息渠道</button>
         </div>
-      </div>
-      <div style="margin-top:var(--space-lg)">
-        <button class="btn btn-primary" id="btn-enter" style="min-width:200px">进入面板</button>
       </div>
     `
   }
@@ -304,10 +295,7 @@ function renderInstallSection() {
 
   return `
     <p style="color:var(--text-secondary);font-size:var(--font-size-sm);margin-bottom:var(--space-sm)">
-      点击安装后，将默认安装当前 ClawPanel 版本绑定的推荐稳定版；如需升降级，可稍后到「关于」页面切换版本。
-    </p>
-    <p style="color:var(--text-tertiary);font-size:var(--font-size-xs);line-height:1.6;margin:-4px 0 var(--space-sm)">
-      如果你是为了体验最新版功能，建议先安装推荐稳定版再手动切换；若希望面板优先适配最新版，欢迎提交 issue。
+      选择版本后点击安装，将自动执行 npm 全局安装。
     </p>
     <div style="display:flex;gap:var(--space-sm);margin-bottom:var(--space-sm)">
       <label class="setup-source-option" style="flex:1;cursor:pointer">
@@ -325,17 +313,7 @@ function renderInstallSection() {
         </div>
       </label>
     </div>
-    <div style="margin-bottom:var(--space-sm)" id="install-method-section">
-      <label style="font-size:var(--font-size-xs);color:var(--text-tertiary);display:block;margin-bottom:4px">安装方式</label>
-      <select id="install-method" style="width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-primary);background:var(--bg-secondary);color:var(--text-primary);font-size:var(--font-size-sm)">
-        <option value="auto">自动选择（推荐）</option>
-        <option value="standalone-r2">独立安装包 · CDN 加速（国内推荐，自带 Node.js，无需 npm）</option>
-        <option value="standalone-github">独立安装包 · GitHub（CDN 不可用时备选）</option>
-        <option value="npm">npm 编译安装（传统方式，需要 Node.js + npm + 网络）</option>
-      </select>
-      <div id="method-hint" style="font-size:var(--font-size-xs);color:var(--text-tertiary);margin-top:4px;line-height:1.5"></div>
-    </div>
-    <div style="margin-bottom:var(--space-sm)" id="registry-section">
+    <div style="margin-bottom:var(--space-sm)">
       <label style="font-size:var(--font-size-xs);color:var(--text-tertiary);display:block;margin-bottom:4px">npm 镜像源</label>
       <select id="registry-select" style="width:100%;padding:6px 8px;border-radius:var(--radius-sm);border:1px solid var(--border-primary);background:var(--bg-secondary);color:var(--text-primary);font-size:var(--font-size-sm)">
         <option value="https://registry.npmmirror.com">淘宝镜像（推荐国内用户）</option>
@@ -343,7 +321,9 @@ function renderInstallSection() {
         <option value="https://repo.huaweicloud.com/repository/npm/">华为云镜像</option>
       </select>
     </div>
-    <button class="btn btn-primary btn-sm" id="btn-install">一键安装</button>
+    <div style="display:flex;justify-content:flex-end;margin-top:var(--space-sm)">
+      <button class="btn btn-primary" id="btn-install" style="min-width:160px;padding:10px 28px;font-size:var(--font-size-md);display:inline-flex;align-items:center;justify-content:center">一键安装</button>
+    </div>
     ${envHint}
   `
 }
@@ -512,155 +492,97 @@ function bindEvents(page, nodeOk, detectState) {
     }
   })
 
-  // 安装方式联动：源切换时更新方式选项可见性
-  const methodSection = page.querySelector('#install-method-section')
-  const registrySection = page.querySelector('#registry-section')
-  const methodSelect = page.querySelector('#install-method')
-  const methodHint = page.querySelector('#method-hint')
-  const sourceRadios = page.querySelectorAll('input[name="install-source"]')
-
-  const METHOD_HINTS = {
-    'auto': '自动选择最优安装方式：优先使用独立安装包（零依赖、最快），失败时自动降级到 npm 编译安装。',
-    'standalone-r2': '从晴辰云 CDN 下载独立安装包，自带 Node.js 运行时，无需 npm。国内下载速度最快。',
-    'standalone-github': '从 GitHub Releases 下载独立安装包。CDN 不可用时的备选方案。',
-    'npm': '传统的 npm install 方式，需要本机已安装 Node.js 和 npm，且网络能访问 npm 仓库。',
-  }
-
-  function updateMethodVisibility() {
-    const source = page.querySelector('input[name="install-source"]:checked')?.value || 'chinese'
-    if (source === 'official') {
-      if (methodSection) methodSection.style.display = 'none'
-      if (registrySection) registrySection.style.display = ''
-    } else {
-      if (methodSection) methodSection.style.display = ''
-      const method = methodSelect?.value || 'auto'
-      if (registrySection) registrySection.style.display = (method === 'npm') ? '' : 'none'
-    }
-    if (methodHint && methodSelect) methodHint.textContent = METHOD_HINTS[methodSelect.value] || ''
-  }
-
-  sourceRadios.forEach(r => r.addEventListener('change', updateMethodVisibility))
-  if (methodSelect) methodSelect.addEventListener('change', updateMethodVisibility)
-  updateMethodVisibility()
-
   // 一键安装
   const installBtn = page.querySelector('#btn-install')
   if (!installBtn || !nodeOk) return
 
   installBtn.addEventListener('click', async () => {
     const source = page.querySelector('input[name="install-source"]:checked')?.value || 'chinese'
-    const method = (source === 'official') ? 'npm' : (page.querySelector('#install-method')?.value || 'auto')
     const registry = page.querySelector('#registry-select')?.value
-    const modal = showUpgradeModal('安装 OpenClaw')
+    const modal = showUpgradeModal()
     let unlistenLog, unlistenProgress
 
     setUpgrading(true)
-
-    const cleanup = () => {
-      setUpgrading(false)
-      unlistenLog?.()
-      unlistenProgress?.()
-      unlistenDone?.()
-      unlistenError?.()
-    }
-
-    let unlistenDone, unlistenError
-
     try {
       if (window.__TAURI_INTERNALS__) {
-        const { listen } = await import('@tauri-apps/api/event')
-        unlistenLog = await listen('upgrade-log', (e) => modal.appendLog(e.payload))
-        unlistenProgress = await listen('upgrade-progress', (e) => modal.setProgress(e.payload))
-
-        // 后台任务完成：继续安装 Gateway + 自动配置
-        unlistenDone = await listen('upgrade-done', async (e) => {
-          cleanup()
-          modal.setDone(typeof e.payload === 'string' ? e.payload : '安装完成')
-
-          // 安装成功后自动安装 Gateway
-          modal.appendLog('正在安装 Gateway 服务...')
-          try {
-            await api.installGateway()
-            modal.appendHtmlLog(`${statusIcon('ok', 14)} Gateway 服务已安装`)
-          } catch (ge) {
-            modal.appendHtmlLog(`${statusIcon('warn', 14)} Gateway 安装失败: ${ge}`)
-          }
-
-          // 确保 openclaw.json 有关键默认值
-          try {
-            const config = await api.readOpenclawConfig()
-            if (config) {
-              let patched = false
-              if (!config.gateway) config.gateway = {}
-              if (!config.gateway.mode) {
-                config.gateway.mode = 'local'
-                patched = true
-                modal.appendHtmlLog(`${statusIcon('ok', 14)} 已设置 Gateway 运行模式为 local`)
-              }
-              if (!config.tools || config.tools.profile !== 'full') {
-                config.tools = { profile: 'full', sessions: { visibility: 'all' }, ...(config.tools || {}) }
-                config.tools.profile = 'full'
-                if (!config.tools.sessions) config.tools.sessions = {}
-                config.tools.sessions.visibility = 'all'
-                patched = true
-                modal.appendHtmlLog(`${statusIcon('ok', 14)} 已开启 Agent 工具全部权限`)
-              }
-              if (patched) await api.writeOpenclawConfig(config)
-            }
-          } catch (ce) {
-            modal.appendHtmlLog(`${statusIcon('warn', 14)} 自动配置失败: ${ce}`)
-          }
-
-          toast('OpenClaw 安装成功', 'success')
-          setTimeout(() => window.location.reload(), 1500)
-        })
-
-        // 后台任务失败
-        unlistenError = await listen('upgrade-error', async (e) => {
-          cleanup()
-          const errStr = String(e.payload || '未知错误')
-          modal.appendLog(errStr)
-          await new Promise(r => setTimeout(r, 150))
-          const fullLog = modal.getLogText() + '\n' + errStr
-          const diagnosis = diagnoseInstallError(fullLog)
-          modal.setError(diagnosis.title)
-          if (diagnosis.hint) modal.appendLog('')
-          if (diagnosis.hint) modal.appendHtmlLog(`${statusIcon('info', 14)} ${diagnosis.hint}`)
-          if (diagnosis.command) modal.appendHtmlLog(`${icon('clipboard', 14)} ${diagnosis.command}`)
-          if (window.__openAIDrawerWithError) {
-            window.__openAIDrawerWithError({ title: diagnosis.title, error: fullLog, scene: '初始安装 OpenClaw', hint: diagnosis.hint })
-          }
-        })
-
-        // 先设置镜像源
-        if (registry) {
-          modal.appendLog(`设置 npm 镜像源: ${registry}`)
-          try { await api.setNpmRegistry(registry) } catch {}
-        }
-
-        // 发起后台任务（立即返回）
-        await api.upgradeOpenclaw(source, null, method)
-        modal.appendLog('后台安装任务已启动，请等待完成...')
+        try {
+          const { listen } = await import('@tauri-apps/api/event')
+          unlistenLog = await listen('upgrade-log', (e) => modal.appendLog(e.payload))
+          unlistenProgress = await listen('upgrade-progress', (e) => modal.setProgress(e.payload))
+        } catch { /* Web 模式无 Tauri event */ }
       } else {
-        // Web 模式：同步等待
         modal.appendLog('Web 模式：安装日志不可用，请等待完成...')
-        if (registry) {
-          modal.appendLog(`设置 npm 镜像源: ${registry}`)
-          try { await api.setNpmRegistry(registry) } catch {}
-        }
-        const msg = await api.upgradeOpenclaw(source, null, method)
-        modal.setDone(msg)
-        toast('OpenClaw 安装成功', 'success')
-        setTimeout(() => window.location.reload(), 1500)
-        cleanup()
       }
+
+      // 先设置镜像源
+      if (registry) {
+        modal.appendLog(`设置 npm 镜像源: ${registry}`)
+        try { await api.setNpmRegistry(registry) } catch {}
+      }
+
+      const msg = await api.upgradeOpenclaw(source)
+      modal.setDone(msg)
+
+      // 安装成功后自动安装 Gateway
+      modal.appendLog('正在安装 Gateway 服务...')
+      try {
+        await api.installGateway()
+        modal.appendHtmlLog(`${statusIcon('ok', 14)} Gateway 服务已安装`)
+      } catch (e) {
+        modal.appendHtmlLog(`${statusIcon('warn', 14)} Gateway 安装失败: ${e}`)
+      }
+
+      // 确保 openclaw.json 有关键默认值，否则 Gateway 启动不了或功能受限
+      try {
+        const config = await api.readOpenclawConfig()
+        if (config) {
+          let patched = false
+          if (!config.gateway) config.gateway = {}
+          if (!config.gateway.mode) {
+            config.gateway.mode = 'local'
+            patched = true
+            modal.appendHtmlLog(`${statusIcon('ok', 14)} 已设置 Gateway 运行模式为 local`)
+          }
+          if (!config.tools || config.tools.profile !== 'full') {
+            config.tools = { profile: 'full', sessions: { visibility: 'all' }, ...(config.tools || {}) }
+            config.tools.profile = 'full'
+            if (!config.tools.sessions) config.tools.sessions = {}
+            config.tools.sessions.visibility = 'all'
+            patched = true
+            modal.appendHtmlLog(`${statusIcon('ok', 14)} 已开启 Agent 工具全部权限`)
+          }
+          if (patched) await api.writeOpenclawConfig(config)
+        }
+      } catch (e) {
+        modal.appendHtmlLog(`${statusIcon('warn', 14)} 自动配置失败: ${e}`)
+      }
+
+      toast('OpenClaw 安装成功', 'success')
+      setTimeout(() => runDetect(page), 1500)
     } catch (e) {
-      cleanup()
       const errStr = String(e)
       modal.appendLog(errStr)
+      // 等待 Tauri 事件队列中残留的 npm 日志行被 JS 处理完毕，
+      // 确保 getLogText() 包含完整输出（含 exit code / ENOENT 等关键行）
+      await new Promise(r => setTimeout(r, 150))
       const fullLog = modal.getLogText() + '\n' + errStr
       const diagnosis = diagnoseInstallError(fullLog)
       modal.setError(diagnosis.title)
+      if (diagnosis.hint) modal.appendLog('')
+      if (diagnosis.hint) modal.appendHtmlLog(`${statusIcon('info', 14)} ${diagnosis.hint}`)
+      if (diagnosis.command) modal.appendHtmlLog(`${icon('clipboard', 14)} ${diagnosis.command}`)
+      if (window.__openAIDrawerWithError) {
+        window.__openAIDrawerWithError({
+          title: diagnosis.title,
+          error: fullLog,
+          scene: '初始安装 OpenClaw',
+          hint: diagnosis.hint,
+        })
+      }
+    } finally {
+      setUpgrading(false)
+      unlistenLog?.()
+      unlistenProgress?.()
     }
   })
 }
