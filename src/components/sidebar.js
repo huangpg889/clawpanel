@@ -8,15 +8,24 @@ import { api } from '../lib/tauri-api.js'
 import { toast } from './toast.js'
 import { version as APP_VERSION } from '../../package.json'
 
+let _openclawVersion = null
+async function _fetchOpenclawVersion() {
+  try {
+    const info = await api.getVersionInfo()
+    _openclawVersion = info?.current || null
+  } catch {
+    _openclawVersion = null
+  }
+}
+
 const NAV_ITEMS_FULL = [
   {
     section: '概览',
     items: [
       { route: '/dashboard', label: '仪表盘', icon: 'dashboard' },
-      { route: '/assistant', label: '晴辰助手', icon: 'assistant' },
       { route: '/chat', label: '实时聊天', icon: 'chat' },
       { route: '/services', label: '服务管理', icon: 'services' },
-      { route: '/logs', label: '日志查看', icon: 'logs' },
+      // { route: '/logs', label: '日志查看', icon: 'logs' },
     ]
   },
   {
@@ -59,7 +68,6 @@ const NAV_ITEMS_SETUP = [
     section: '',
     items: [
       { route: '/setup', label: '初始设置', icon: 'setup' },
-      { route: '/assistant', label: '晴辰助手', icon: 'assistant' },
     ]
   },
   {
@@ -137,7 +145,7 @@ export function renderSidebar(el) {
       <div class="sidebar-logo">
         <img src="/images/logo.png" alt="ClawPanel">
       </div>
-      <span class="sidebar-title">ClawPanel</span>
+      <span class="sidebar-title">Alsatian</span>
       <button class="sidebar-collapse-btn" id="btn-sidebar-collapse" title="折叠/展开">${collapsed ? '»' : '«'}</button>
       <button class="sidebar-close-btn" id="btn-sidebar-close" title="关闭菜单">&times;</button>
     </div>
@@ -182,8 +190,8 @@ export function renderSidebar(el) {
         <span>${isDark ? '日间模式' : '夜间模式'}</span>
       </div>
       <div class="sidebar-meta">
-        <a href="https://claw.qt.cool" target="_blank" rel="noopener" class="sidebar-link">claw.qt.cool</a>
-        <span class="sidebar-version">v${APP_VERSION}</span>
+        <a href="#" class="sidebar-link" id="btn-openclaw-link">OpenClaw 网页</a>
+        <span class="sidebar-version">${_openclawVersion ? 'v' + _openclawVersion : 'v' + APP_VERSION}</span>
       </div>
     </div>
   `
@@ -193,8 +201,11 @@ export function renderSidebar(el) {
   // 应用折叠态（桌面端）
   _setDesktopSidebarCollapsed(collapsed)
 
-  // 首次渲染时异步检测多实例
-  if (!_delegated) _checkMultiInstances(el)
+  // 首次渲染时异步检测多实例 & 获取 OpenClaw 版本
+  if (!_delegated) {
+    _checkMultiInstances(el)
+    _fetchOpenclawVersion().then(() => { if (_openclawVersion) renderSidebar(el) })
+  }
 
   // 事件委托：只绑定一次，避免重复绑定
   if (!_delegated) {
@@ -256,6 +267,13 @@ export function renderSidebar(el) {
         _showAddInstanceDialog(el)
         return
       }
+      // OpenClaw 网页链接
+      const openclawLink = e.target.closest('#btn-openclaw-link')
+      if (openclawLink) {
+        e.preventDefault()
+        _openOpenclawWeb()
+        return
+      }
       // 点击其他区域关闭下拉
       if (!e.target.closest('.instance-switcher')) {
         _closeInstanceDropdown()
@@ -264,6 +282,25 @@ export function renderSidebar(el) {
 
     // 监听实例变化，刷新多实例标记后重新渲染
     onInstanceChange(() => { _checkMultiInstances(el); renderSidebar(el) })
+  }
+}
+
+async function _openOpenclawWeb() {
+  let url = 'http://localhost:18789'
+  try {
+    const config = await api.readOpenclawConfig()
+    const port = config?.gateway?.port || 18789
+    const token = config?.gateway?.auth?.token
+    url = `http://localhost:${port}`
+    if (token && typeof token === 'string') {
+      url += `?token=${encodeURIComponent(token)}`
+    }
+  } catch { /* 使用默认 URL */ }
+  try {
+    const { open } = await import('@tauri-apps/plugin-shell')
+    await open(url)
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 }
 

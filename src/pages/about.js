@@ -16,8 +16,8 @@ export async function render() {
     <div class="page-header" style="display:flex;align-items:center;gap:16px">
       <img src="/images/logo-brand.png" alt="ClawPanel" style="height:48px;width:auto">
       <div>
-        <h1 class="page-title" style="margin:0">ClawPanel</h1>
-        <p class="page-desc" style="margin:0">OpenClaw 可视化管理面板 · <a href="https://claw.qt.cool" target="_blank" rel="noopener" style="color:var(--primary)">claw.qt.cool</a></p>
+        <h1 class="page-title" style="margin:0">Alsatian</h1>
+        <p class="page-desc" style="margin:0">OpenClaw 可视化管理面板 · <a href="https://3onedata.com" target="_blank" rel="noopener" style="color:var(--primary)">3onedata</a></p>
       </div>
     </div>
     <div class="stat-cards" id="version-cards">
@@ -25,29 +25,29 @@ export async function render() {
       <div class="stat-card loading-placeholder"></div>
       <div class="stat-card loading-placeholder"></div>
     </div>
-    <div class="config-section">
+    <div class="config-section" style="display:none">
       <div class="config-section-title">社群交流</div>
       <div id="community-section"></div>
     </div>
-    <div class="config-section">
+    <div class="config-section" style="display:none">
       <div class="config-section-title">相关项目</div>
       <div id="projects-list"></div>
     </div>
-    <div class="config-section">
+    <div class="config-section" style="display:none">
       <div class="config-section-title">参与贡献</div>
       <div id="contribute-section"></div>
     </div>
-    <div class="config-section">
+    <div class="config-section" style="display:none">
       <div class="config-section-title">快捷链接</div>
       <div id="links-list"></div>
     </div>
-    <div class="config-section">
+    <div class="config-section" style="display:none">
       <div class="config-section-title">关于我们</div>
       <div id="company-section"></div>
     </div>
     <div class="config-section" style="color:var(--text-tertiary);font-size:var(--font-size-xs)">
-      <p>ClawPanel 基于 Tauri v2 构建，前端 Vanilla JS + Vite，后端 Rust。</p>
-      <p style="margin-top:8px">MIT License &copy; 2026 武汉晴辰天下网络科技有限公司</p>
+      <p>Alsatian 基于 Tauri v2 构建，前端 Vanilla JS + Vite，后端 Rust。</p>
+      <p style="margin-top:8px">MIT License &copy; 2026 深圳市三旺通信股份有限公司</p>
     </div>
   `
 
@@ -92,7 +92,7 @@ async function loadData(page) {
       : '当前面板默认只保证推荐稳定版的兼容性；如果你要尝试其他版本或预览版，请自行验证兼容性。若希望面板尽快支持最新版特性，欢迎提交 issue 告诉我们。'
 
     cards.innerHTML = `
-      <div class="stat-card">
+      <div class="stat-card" style="display:none">
         <div class="stat-card-header"><span class="stat-card-label">ClawPanel</span></div>
         <div class="stat-card-value">${panelVersion}</div>
         <div class="stat-card-meta" id="panel-update-meta" style="display:flex;align-items:center;gap:8px">${panelUpdateHtml}</div>
