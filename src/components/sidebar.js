@@ -36,7 +36,7 @@ const NAV_ITEMS_FULL = [
       { route: '/gateway', label: 'Gateway', icon: 'gateway' },
       { route: '/channels', label: '消息渠道', icon: 'channels' },
       { route: '/communication', label: '通信与自动化', icon: 'settings' },
-      { route: '/security', label: '安全设置', icon: 'security' },
+      // { route: '/security', label: '安全设置', icon: 'security' },
     ]
   },
   {
@@ -56,7 +56,7 @@ const NAV_ITEMS_FULL = [
   {
     section: '',
     items: [
-      { route: '/settings', label: '面板设置', icon: 'settings' },
+      // { route: '/settings', label: '面板设置', icon: 'settings' },
       { route: '/chat-debug', label: '系统诊断', icon: 'debug' },
       { route: '/about', label: '关于', icon: 'about' },
     ]
@@ -73,7 +73,7 @@ const NAV_ITEMS_SETUP = [
   {
     section: '',
     items: [
-      { route: '/settings', label: '面板设置', icon: 'settings' },
+      // { route: '/settings', label: '面板设置', icon: 'settings' },
       { route: '/chat-debug', label: '系统诊断', icon: 'debug' },
       { route: '/about', label: '关于', icon: 'about' },
     ]
