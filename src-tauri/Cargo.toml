@@ -1,15 +1,15 @@
 [package]
-name = "clawpanel"
-version = "0.9.6"
+name = "alsatian"
+version = "1.0.0"
 edition = "2021"
-description = "ClawPanel - OpenClaw 可视化管理面板"
-authors = ["qingchencloud"]
-repository = "https://github.com/qingchencloud/clawpanel"
-homepage = "https://github.com/qingchencloud/clawpanel"
+description = "Alsatian - OpenClaw AI Agent 桌面管理面板"
+authors = ["huangpg889"]
+repository = "https://github.com/huangpg889/clawpanel"
+homepage = "https://github.com/huangpg889/clawpanel"
 license = "AGPL-3.0"
 
 [lib]
-name = "clawpanel_lib"
+name = "alsatian_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]

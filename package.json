@@ -1,25 +1,31 @@
 {
-  "name": "clawpanel",
+  "name": "alsatian",
   "version": "1.0.0",
-  "private": true,
-  "description": "ClawPanel - OpenClaw 可视化管理面板，基于 Tauri v2 的跨平台桌面应用",
+  "description": "Alsatian - OpenClaw AI Agent 桌面管理面板",
   "type": "module",
-  "author": "qingchencloud",
+  "author": "huangpg889",
   "license": "AGPL-3.0",
-  "homepage": "https://github.com/qingchencloud/clawpanel",
+  "homepage": "https://github.com/huangpg889/clawpanel",
   "repository": {
     "type": "git",
-    "url": "https://github.com/qingchencloud/clawpanel.git"
+    "url": "https://github.com/huangpg889/clawpanel.git"
   },
   "bugs": {
-    "url": "https://github.com/qingchencloud/clawpanel/issues"
+    "url": "https://github.com/huangpg889/clawpanel/issues"
   },
   "keywords": [
     "openclaw",
     "ai-agent",
     "tauri",
     "desktop-app",
-    "management-panel"
+    "alsatian"
+  ],
+  "bin": {
+    "alsatian": "./bin/alsatian.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/postinstall.js"
   ],
   "scripts": {
     "dev": "vite",
@@ -29,7 +35,8 @@
     "icon:regen": "tauri icon docs/logo.png -o src-tauri/icons",
     "serve": "node scripts/serve.js",
     "version:sync": "node scripts/sync-version.js",
-    "version:set": "node scripts/sync-version.js"
+    "version:set": "node scripts/sync-version.js",
+    "postinstall": "node scripts/postinstall.js"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.5.0",
